@@ -60,12 +60,7 @@ class Dynamics(nn.Module):
 
         return state.T # need to transpose state
 
-# a deterministic controller
-# Note:
-# 0. You only need to change the network architecture in "__init__"
-# 1. nn.Sigmoid outputs values from 0 to 1, nn.Tanh from -1 to 1
-# 2. You have all the freedom to make the network wider (by increasing "dim_hidden") or deeper (by adding more lines to nn.Sequential)
-# 3. Always start with something simple
+# Deterministic controller
 
 class Controller(nn.Module):
 
@@ -116,7 +111,7 @@ class Simulation(nn.Module):
     @staticmethod
     def initialize_state():
 
-        state = torch.rand((L, 5)) # Initial state for the rocket in interval 0 to 1
+        state = torch.rand((L, 5)) # Initial conditions for the rocket in interval 0 to 1
         state[:, 1] = 0  # vx = 0
         state[:, 3] = 0  # vy = 0
 
@@ -124,14 +119,6 @@ class Simulation(nn.Module):
 
     def error(self, state):
         return torch.sum(state ** 2) # sum of loss
-
-# set up the optimizer
-# Note:
-# 0. LBFGS is a good choice if you don't have a large batch size (i.e., a lot of initial states to consider simultaneously)
-# 1. You can also try SGD and other momentum-based methods implemented in PyTorch
-# 2. You will need to customize "visualize"
-# 3. loss.backward is where the gradient is calculated (d_loss/d_variables)
-# 4. self.optimizer.step(closure) is where gradient descent is done
 
 class Optimize:
 
@@ -146,7 +133,7 @@ class Optimize:
             loss = self.simulation(self.simulation.state)
             self.optimizer.zero_grad()
             loss.backward()
-            return loss
+            return loss     # keeps track of loss
 
         self.optimizer.step(closure)
         return closure()
@@ -173,34 +160,34 @@ class Optimize:
             fig1, axs = plt.subplots(2, 2)
 
             axs[0, 0].plot(x, y)
-            axs[0, 0].set_title('Position Changeable for Rocket Landing')
-            axs[0, 0].set_xlabel('Rocket X Position(m)')
-            axs[0, 0].set_ylabel('Rocket Y Position(m)')
+            axs[0, 0].set_title('Rocket Landing Changing Position')
+            axs[0, 0].set_xlabel('X Position(m)')
+            axs[0, 0].set_ylabel('Y Position(m)')
 
             axs[0, 1].plot(list(range(self.simulation.T)), vx)
-            axs[0, 1].set_title('Velocity X Changeable for Rocket Landing')
+            axs[0, 1].set_title('X Velocity vs. Time')
             axs[0, 1].set_xlabel('Time Step')
-            axs[0, 1].set_ylabel('Rocket X Velocity(m/s)')
+            axs[0, 1].set_ylabel('Vx (m/s)')
 
             axs[1, 0].plot(list(range(self.simulation.T)), vy)
-            axs[1, 0].set_title('Velocity Y Changeable for Rocket Landing')
+            axs[1, 0].set_title('Y Velocity vs. Time')
             axs[1, 0].set_xlabel('Time Step')
-            axs[1, 0].set_ylabel('Rocket Y Velocity(m/s)')
+            axs[1, 0].set_ylabel('Vy (m/s)')
 
             axs[1, 1].plot(list(range(self.simulation.T)), theta)
-            axs[1, 1].set_title('Theta Changeable for Rocket Landing')
+            axs[1, 1].set_title('Theta changing with time')
             axs[1, 1].set_xlabel('Time Step')
-            axs[1, 1].set_ylabel('Rocket Theta(rad)')
+            axs[1, 1].set_ylabel('Theta(rad)')
         plt.show()
 
 
 L = 10
-T = 100  # number of time steps
+T = 100 # number of time steps for 10 seconds
 dim_input = 5       # state space dimensions
-dim_hidden = 6  # latent dimensions
-dim_output = 2  # action space dimensions
+dim_hidden = 6  # latent dimensions for convergence purposes
+dim_output = 2  # action space dimensions being controlled
 d = Dynamics()  # define dynamics
 c = Controller(dim_input, dim_hidden, dim_output)  # define controller
 s = Simulation(c, d, T, L)  # define simulation
 o = Optimize(s)  # define optimizer
-o.train(50)  # solve the optimization problem
+o.train(50)  # solve the optimization problem using 50 iterations
